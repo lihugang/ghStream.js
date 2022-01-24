@@ -1,8 +1,10 @@
 /* ghStream.js
-   Copyright: (c) 2018-2022 Air-Team 
+   Copyright: (c) 2018-2021 Air-Team 
    lihugang@outlook.com
-   Jan.21,2022
+   Jan.24,2021
+   Version:1.0.2
 */
+
 //function _init_ghStream() {
 //var token = ["EOF", "NULL", "DEFAULT", "NO_USING_TOKEN", "SEEK_SET", "SEEK_CUR", "SEEK_END", "FOPEN_MAX", "FILENAME_MAX", "L_tmpnam", "TMP_MAX", "stdin", "stdout", "stderr", "_gh_token_arr", "_tmpfile_hash_table", "FILE_POINTER", "fpos_t", "data_t", "cfg_gh_token", "_check_match", "fopen", "fclose", "_update_sha", "_string_to_array", "_array_to_string", "fclose", "_rand", "freopen", "printf", "scanf", "putchar", "getchar", "feof", "fgetpos", "retfgetpos", "fread", "retfread", "fseek", "fsetpos", "ftell", "fwrite", "easy_fwrite", "remove", "rename", "rewind", "tmpfile", "tmpnam", "getdata", "setdata"]
 
@@ -242,7 +244,14 @@ function fclose(fp) {
         };
         xhr.open("PUT", "https://api.github.com/repos/" + fp.f_info.username + "/" + fp.f_info.repo_name + "/contents/" + fp.f_info.path + "?rand=" + _rand(16), false);
         xhr.setRequestHeader("Authorization", "token " + fp.gh_token);
-        xhr.send(JSON.stringify({ message: "ghStream.js submited the file", sha: fp.f_sha, content: btoa(_array_to_string(fp.f_content)) }));
+        if (fp.f_mode.contains("w") && fp.f_status == 404)
+            xhr.send(JSON.stringify({ message: "ghStream.js submitted the file", content: btoa(_array_to_string(fp.f_content)) }));
+        else xhr.send(JSON.stringify({ message: "ghStream.js submitted the file", sha: fp.f_sha, content: btoa(_array_to_string(fp.f_content)) }));
+        /*
+        Bug report:@lihugang v1.0.2 Jan24,2022
+        ghStream.js cannot created files
+        GitHub API: When you are creatting a file,don't take "sha" key 
+        */
         if (xhr.status >= 200 && xhr.status < 400) {
             //Successful upload
             delete fp;
