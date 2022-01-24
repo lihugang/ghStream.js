@@ -1,5 +1,5 @@
 /* ghStream.js
-   Copyright: (c) 2018-2021 Air-Team 
+   Copyright: (c) 2018-2022 Air-Team 
    lihugang@outlook.com
    Jan.24,2021
    Version:1.0.2
