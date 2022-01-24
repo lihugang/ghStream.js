@@ -180,7 +180,7 @@ function fopen(Filename, Mode, gh_token = DEFAULT) {
                 },
                 f_status: xhr.status,
                 f_mode: Mode,
-                f_content: _string_to_array(atob(JSON.parse(xhr.response).content)),
+                f_content: _string_to_array(utf8to16(atob(JSON.parse(xhr.response).content))),
                 f_sha: JSON.parse(xhr.response).sha,
                 gh_token: gh_token,
                 pos: 0
@@ -245,8 +245,8 @@ function fclose(fp) {
         xhr.open("PUT", "https://api.github.com/repos/" + fp.f_info.username + "/" + fp.f_info.repo_name + "/contents/" + fp.f_info.path + "?rand=" + _rand(16), false);
         xhr.setRequestHeader("Authorization", "token " + fp.gh_token);
         if (fp.f_mode.contains("w") && fp.f_status == 404)
-            xhr.send(JSON.stringify({ message: "ghStream.js submitted the file", content: btoa(_array_to_string(fp.f_content)) }));
-        else xhr.send(JSON.stringify({ message: "ghStream.js submitted the file", sha: fp.f_sha, content: btoa(_array_to_string(fp.f_content)) }));
+            xhr.send(JSON.stringify({ message: "ghStream.js submitted the file", content: btoa(utf16to8(_array_to_string(fp.f_content))) }));
+        else xhr.send(JSON.stringify({ message: "ghStream.js submitted the file", sha: fp.f_sha, content: btoa(utf16to8(_array_to_string(fp.f_content))) }));
         /*
         Bug report:@lihugang v1.0.2 Jan24,2022
         ghStream.js cannot created files
@@ -486,3 +486,79 @@ function setdata(stream, data) {
 //};
 //};
 //_init_ghStream();
+
+/* utf.js - UTF-8 <=> UTF-16 convertion
+ *
+ * Copyright (C) 1999 Masanao Izumo <iz@onicos.co.jp>
+ * Version: 1.0
+ * LastModified: Dec 25 1999
+ * This library is free. You can redistribute it and/or modify it.
+ */
+
+/*
+ * Interfaces:
+ * utf8 = utf16to8(utf16);
+ * utf16 = utf8to16(utf8);
+ */
+
+function utf16to8(str) {
+    var out, i, len, c;
+
+    out = "";
+    len = str.length;
+    for (i = 0; i < len; i++) {
+        c = str.charCodeAt(i);
+        if ((c >= 0x0001) && (c <= 0x007F)) {
+            out += str.charAt(i);
+        } else if (c > 0x07FF) {
+            out += String.fromCharCode(0xE0 | ((c >> 12) & 0x0F));
+            out += String.fromCharCode(0x80 | ((c >> 6) & 0x3F));
+            out += String.fromCharCode(0x80 | ((c >> 0) & 0x3F));
+        } else {
+            out += String.fromCharCode(0xC0 | ((c >> 6) & 0x1F));
+            out += String.fromCharCode(0x80 | ((c >> 0) & 0x3F));
+        }
+    }
+    return out;
+}
+
+function utf8to16(str) {
+    var out, i, len, c;
+    var char2, char3;
+
+    out = "";
+    len = str.length;
+    i = 0;
+    while (i < len) {
+        c = str.charCodeAt(i++);
+        switch (c >> 4) {
+            case 0:
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+            case 5:
+            case 6:
+            case 7:
+                // 0xxxxxxx
+                out += str.charAt(i - 1);
+                break;
+            case 12:
+            case 13:
+                // 110x xxxx 10xx xxxx
+                char2 = str.charCodeAt(i++);
+                out += String.fromCharCode(((c & 0x1F) << 6) | (char2 & 0x3F));
+                break;
+            case 14:
+                // 1110 xxxx 10xx xxxx 10xx xxxx
+                char2 = str.charCodeAt(i++);
+                char3 = str.charCodeAt(i++);
+                out += String.fromCharCode(((c & 0x0F) << 12) |
+                    ((char2 & 0x3F) << 6) |
+                    ((char3 & 0x3F) << 0));
+                break;
+        }
+    }
+
+    return out;
+}
